@@ -1,0 +1,14 @@
+# Exclude raw datasets and sensitive PII from docker image
+data/raw/
+data/reports/
+data/processed/rejected_records.csv
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.git/
+.gitignore
+tests/
+
