@@ -84,9 +84,11 @@ def chronological_walk_forward_evaluation(
         "previous_day": [],
         "previous_same_weekday": [],
         "rolling_5d_mean": [],
-        "poisson": [],
+        "linear_regression": [],
+        "decision_tree": [],
+        "random_forest": [],
         "ridge": [],
-        "gradient_boosting": []
+        "poisson": []
     }
 
     split_details = []
@@ -127,15 +129,31 @@ def chronological_walk_forward_evaluation(
         pred_roll = b_roll.predict(X_test)
         results["rolling_5d_mean"].append(compute_metrics(y_test, pred_roll))
 
-        # 5. Poisson Regressor
+        # 5. Linear Regression
         try:
-            m_poisson = DailyDemandForecaster(model_type="poisson").fit(X_train, y_train, feature_keys)
-            pred_poisson = m_poisson.predict(X_test)
-            results["poisson"].append(compute_metrics(y_test, pred_poisson))
+            m_lr = DailyDemandForecaster(model_type="linear_regression").fit(X_train, y_train, feature_keys)
+            pred_lr = m_lr.predict(X_test)
+            results["linear_regression"].append(compute_metrics(y_test, pred_lr))
         except Exception:
             pass
 
-        # 6. Ridge Regressor
+        # 6. Decision Tree Regressor
+        try:
+            m_dt = DailyDemandForecaster(model_type="decision_tree").fit(X_train, y_train, feature_keys)
+            pred_dt = m_dt.predict(X_test)
+            results["decision_tree"].append(compute_metrics(y_test, pred_dt))
+        except Exception:
+            pass
+
+        # 7. Random Forest Regressor
+        try:
+            m_rf = DailyDemandForecaster(model_type="random_forest").fit(X_train, y_train, feature_keys)
+            pred_rf = m_rf.predict(X_test)
+            results["random_forest"].append(compute_metrics(y_test, pred_rf))
+        except Exception:
+            pass
+
+        # 8. Ridge Regressor
         try:
             m_ridge = DailyDemandForecaster(model_type="ridge").fit(X_train, y_train, feature_keys)
             pred_ridge = m_ridge.predict(X_test)
@@ -143,11 +161,11 @@ def chronological_walk_forward_evaluation(
         except Exception:
             pass
 
-        # 7. Gradient Boosting Regressor
+        # 9. Poisson Regressor
         try:
-            m_gbr = DailyDemandForecaster(model_type="gradient_boosting").fit(X_train, y_train, feature_keys)
-            pred_gbr = m_gbr.predict(X_test)
-            results["gradient_boosting"].append(compute_metrics(y_test, pred_gbr))
+            m_poisson = DailyDemandForecaster(model_type="poisson").fit(X_train, y_train, feature_keys)
+            pred_poisson = m_poisson.predict(X_test)
+            results["poisson"].append(compute_metrics(y_test, pred_poisson))
         except Exception:
             pass
 

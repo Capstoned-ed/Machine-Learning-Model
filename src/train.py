@@ -85,19 +85,13 @@ def train_and_persist():
     print(f"\nSaved evaluation report: {eval_json_path}")
 
     # 4. Train Champion Daily Forecaster
-    # Compare GBR vs Poisson vs Ridge vs Baselines
+    # Evaluate candidates: Random Forest vs Decision Tree vs Linear Regression vs Ridge
     comp = eval_results["model_comparison"]
-    gbr_mae = comp.get("gradient_boosting", {}).get("mean_mae", 999)
-    poisson_mae = comp.get("poisson", {}).get("mean_mae", 999)
-    ridge_mae = comp.get("ridge", {}).get("mean_mae", 999)
+    candidates = ["random_forest", "decision_tree", "linear_regression", "ridge"]
+    best_type = min(candidates, key=lambda c: comp.get(c, {}).get("mean_mae", 999.0))
+    best_mae = comp.get(best_type, {}).get("mean_mae", 0.0)
 
-    best_type = "gradient_boosting"
-    if poisson_mae < gbr_mae and poisson_mae < ridge_mae:
-        best_type = "poisson"
-    elif ridge_mae < gbr_mae and ridge_mae < poisson_mae:
-        best_type = "ridge"
-
-    print(f"\nChampion model selected: {best_type} (lowest walk-forward MAE)")
+    print(f"\nChampion model selected: {best_type} (lowest walk-forward MAE: {best_mae:.2f} req/day)")
 
     feature_keys = [
         "day_of_week", "month", "day_of_month", "is_operating_day",

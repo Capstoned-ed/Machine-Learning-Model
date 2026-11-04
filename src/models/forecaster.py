@@ -10,7 +10,8 @@ from typing import List, Dict, Any, Tuple
 import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import PoissonRegressor, Ridge
+from sklearn.linear_model import PoissonRegressor, Ridge, LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 
@@ -19,26 +20,30 @@ class DailyDemandForecaster:
     Forecasting pipeline wrapping trained regressor with autoregressive rollout
     and interval estimation.
     """
-    def __init__(self, model_type: str = "poisson", alpha: float = 1.0):
+    def __init__(self, model_type: str = "random_forest", alpha: float = 1.0):
         self.model_type = model_type
         self.alpha = alpha
         
-        if model_type == "poisson":
-            self.model = make_pipeline(
-                StandardScaler(),
-                PoissonRegressor(alpha=alpha, max_iter=3000, tol=1e-4)
-            )
+        if model_type == "random_forest":
+            self.model = RandomForestRegressor(n_estimators=50, max_depth=4, random_state=42)
+        elif model_type == "decision_tree":
+            self.model = DecisionTreeRegressor(max_depth=3, random_state=42)
+        elif model_type == "linear_regression":
+            self.model = LinearRegression()
         elif model_type == "ridge":
             self.model = make_pipeline(
                 StandardScaler(),
                 Ridge(alpha=alpha)
             )
-        elif model_type == "random_forest":
-            self.model = RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42)
+        elif model_type == "poisson":
+            self.model = make_pipeline(
+                StandardScaler(),
+                PoissonRegressor(alpha=alpha, max_iter=3000, tol=1e-4)
+            )
         elif model_type == "gradient_boosting":
             self.model = GradientBoostingRegressor(
-                loss="poisson",
-                n_estimators=100,
+                loss="squared_error",
+                n_estimators=50,
                 learning_rate=0.05,
                 max_depth=3,
                 random_state=42

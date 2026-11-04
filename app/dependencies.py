@@ -4,12 +4,17 @@ Loads serialized models and metadata at startup with graceful fallback.
 """
 
 import os
+import sys
 import json
 import time
 from typing import Optional, Dict, Any
 import joblib
 
 from .config import ARTIFACTS_DIR
+
+BASE_ML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_ML_DIR not in sys.path:
+    sys.path.insert(0, BASE_ML_DIR)
 
 START_TIME = time.time()
 
