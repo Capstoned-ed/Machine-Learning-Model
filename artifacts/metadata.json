@@ -1,0 +1,98 @@
+{
+  "build_timestamp": "2026-11-05T01:07:53.236423",
+  "training_data_period": {
+    "start": "2024-12-16",
+    "end": "2025-12-18",
+    "total_operating_days": 245,
+    "total_individual_requests": 9265
+  },
+  "daily_forecaster": {
+    "model_type": "ridge",
+    "version": "daily-forecaster-ridge-v1",
+    "feature_names": [
+      "day_of_week",
+      "month",
+      "day_of_month",
+      "is_operating_day",
+      "is_weekend",
+      "is_peak_academic_season",
+      "is_slow_academic_season",
+      "is_month_start",
+      "is_month_end",
+      "lag_1",
+      "lag_2",
+      "lag_3",
+      "lag_5",
+      "lag_10",
+      "rolling_mean_5",
+      "rolling_mean_10",
+      "rolling_std_5",
+      "rolling_min_5",
+      "rolling_max_5"
+    ],
+    "residual_std": 23.53,
+    "evaluation_metrics": {
+      "mean_mae": 23.66,
+      "mean_medae": 20.37,
+      "mean_rmse": 30.18,
+      "mean_wape_pct": 64.08,
+      "mean_poisson_deviance": 24.62
+    }
+  },
+  "processing_time_baseline": {
+    "version": "processing-time-baseline-v1",
+    "basis": "administrative_standard_and_scheduled_lead_time",
+    "is_empirical": false,
+    "disclaimer": "Notice: Estimated processing duration reflects administrative registrar guidelines and scheduled turnaround. Actual empirical processing timestamps are not yet recorded in sufficient historical volume.",
+    "credential_days": {
+      "TOR": 6.0,
+      "HD": 6.0,
+      "CAV": 6.0,
+      "COE": 5.0,
+      "GPA_CERT": 5.0,
+      "GRAD_CERT": 5.0,
+      "UNITS_CERT": 6.0,
+      "ENROLLED_SUBJ_CERT": 5.0,
+      "CAR": 5.0,
+      "GRADES_CERT": 6.0,
+      "CONVERSION_CERT": 6.0,
+      "ENGLISH_CERT": 6.0,
+      "GRADING_SYS_CERT": 2.0,
+      "HONOR_CERT": 7.0,
+      "GRADUATING_CERT": 2.0,
+      "EVAL": 6.0,
+      "F137": 10.0,
+      "DIPLOMA": 6.0,
+      "WES": 5.0,
+      "STUDY_PERMIT": 2.0,
+      "VERIFICATION": 3.0,
+      "DEFAULT": 3.0,
+      "NSTP_CERT": 6.0,
+      "NO_OBJECTION_CERT": 6.0
+    }
+  },
+  "monthly_workload_thresholds": {
+    "light_max": 500,
+    "moderate_max": 850,
+    "heavy_max": 1150,
+    "very_heavy_min": 1150,
+    "derivation_basis": "historical_2025_monthly_distribution"
+  },
+  "recent_history_buffer": [
+    30.0,
+    2.0,
+    80.0,
+    50.0,
+    29.0,
+    9.0,
+    29.0,
+    14.0,
+    14.0,
+    67.0,
+    21.0,
+    26.0,
+    1.0,
+    44.0,
+    5.0
+  ]
+}
