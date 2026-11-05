@@ -1,5 +1,6 @@
 # ==============================================================================
 # RegQuest ML Microservice — Production Dockerfile
+# Compatible with Render, Fly.io, Railway, and Local Docker Deployments
 # ==============================================================================
 FROM python:3.11-slim AS builder
 
@@ -25,16 +26,16 @@ RUN groupadd -r regquest && useradd -r -g regquest -d /app -s /sbin/nologin regq
 COPY --from=builder /root/.local /app/.local
 ENV PATH=/app/.local/bin:$PATH
 
-# Copy application code and serialized model artifacts ONLY
+# Copy application code, configs, and serialized model artifacts ONLY
 # Note: Raw data CSV files are explicitly excluded via .dockerignore to safeguard PII
-COPY app/ /app/ML/app/
-COPY src/ /app/ML/src/
-COPY artifacts/ /app/ML/artifacts/
-COPY requirements.txt /app/ML/requirements.txt
-COPY README.md /app/ML/README.md
+COPY app/ /app/app/
+COPY src/ /app/src/
+COPY configs/ /app/configs/
+COPY artifacts/ /app/artifacts/
+COPY requirements.txt /app/requirements.txt
+COPY README.md /app/README.md
 
 ENV PYTHONPATH=/app
-ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8001
@@ -42,7 +43,6 @@ EXPOSE 8001
 USER regquest
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" || exit 1
+    CMD python -c "import urllib.request, os; port=os.environ.get('PORT', '8001'); urllib.request.urlopen(f'http://localhost:{port}/health')" || exit 1
 
-CMD ["uvicorn", "ML.app.main:app", "--host", "0.0.0.0", "--port", "8001"]
-
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}"]
