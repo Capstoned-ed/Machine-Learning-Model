@@ -2,9 +2,10 @@
 RegQuest Machine Learning Microservice.
 FastAPI Application Entrypoint.
 Provides endpoints for:
-1. Document processing turnaround duration prediction
-2. Daily incoming credential request forecasting
-3. Monthly workload volume forecasting and classification
+1. Document processing turnaround duration prediction (/predict/processing-time)
+2. Daily incoming credential request forecasting (/forecast/daily)
+3. Monthly workload volume forecasting and classification (/forecast/monthly-workload)
+4. Health check and model readiness (/health)
 """
 
 from fastapi import FastAPI
@@ -12,7 +13,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import PROJECT_NAME, VERSION
 from .dependencies import ModelManager
-from .routers import health, processing_time, daily_forecast, monthly_workload
+from .api.routes import (
+    health_router,
+    processing_time_router,
+    daily_forecast_router,
+    monthly_workload_router
+)
 
 app = FastAPI(
     title=PROJECT_NAME,
@@ -29,11 +35,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
-app.include_router(health.router)
-app.include_router(processing_time.router)
-app.include_router(daily_forecast.router)
-app.include_router(monthly_workload.router)
+# Register routers from app.api.routes
+app.include_router(health_router)
+app.include_router(processing_time_router)
+app.include_router(daily_forecast_router)
+app.include_router(monthly_workload_router)
 
 # Preload models
 ModelManager.get_instance()
@@ -51,4 +57,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("ML.app.main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)

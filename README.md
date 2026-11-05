@@ -1,30 +1,33 @@
 # RegQuest Machine Learning Microservice
 
-A production-ready Machine Learning microservice for the **RegQuest** Credential Request Management System.
+A production-ready Machine Learning package and microservice for the **RegQuest** Academic Credential Request Management System.
 
 ---
 
 ## 1. Capabilities Overview
 
 ### A. Document Processing Time Prediction (`/predict/processing-time`)
-- **Objective:** Estimates the processing turnaround duration (in operating days) of an individual credential request.
-- **Features:** Credential Type (`TOR`, `HD`, `CAV`, `COE`, `CAR`, etc.), Request Purpose, Submission Weekday, Submission Month, Multi-Document Package Flag, Number of Documents.
+- **Objective:** Estimates the processing turnaround duration (in operating business days) of an individual credential request.
+- **Features:** Credential Type (`TOR`, `HD`, `CAV`, `COE`, `CAR`, etc.), Request Purpose, Submission Date, Multi-Document Package Flag, Number of Documents.
 - **Model:** Defensible administrative standard and scheduled duration baseline (`processing-time-baseline-v1`).
-- **Data Limitation Notice:** In the historical 2025 registrar logbooks, only 2.7% of rows recorded turnaround duration, and all recorded entries represented scheduled target lead times rather than physical printing/completion times. In accordance with strict development principles, the service explicitly returns `is_empirical: false` with explanatory disclaimers.
+- **Data Limitation Notice:** In the historical 2025 registrar logbooks, only 2.7% (250 / 9,265 rows) recorded turnaround duration, representing scheduled target lead times rather than physical completion times. In accordance with strict development principles, the service returns `is_empirical: false` with explanatory disclaimers until production logs accumulate empirical completion timestamps.
 
 ### B. Daily Incoming Request Forecasting (`/forecast/daily`)
 - **Objective:** Forecasts incoming credential requests expected on upcoming registrar operating days (Monday–Friday).
 - **Features:** Calendar day of week, day of month, month, academic seasonality indicators (peak enrollment/graduation vs. recess), backward-looking autoregressive lags ($t-1, t-2, t-3, t-5, t-10$), and 5-day / 10-day rolling averages and volatility.
-- **Model:** Walk-forward validated count regression pipeline (`StandardScaler` + `Ridge` / `PoissonRegressor` / `GradientBoostingRegressor`).
-- **Validation:** 4-split expanding-window chronological cross-validation achieving MAE of 23.66 requests/day, MedAE of 20.37 requests/day, and RMSE of 30.18 requests/day (outperforming naive and historical mean baselines).
-- **Inference:** Autoregressive rollout engine generating point estimates and 90% prediction intervals.
+- **Champion Model:** **Random Forest Regressor** (50 trees, `max_depth=4`), crowned champion after beating all candidate models on chronological cross-validation:
+  - **Random Forest (Champion):** MAE **18.97**, MedAE **12.74**, RMSE **27.10** requests/day
+  - **Decision Tree Regressor:** MAE 19.11, MedAE 14.67, RMSE 26.98 requests/day
+  - **Linear Regression:** MAE 23.79, MedAE 20.54, RMSE 30.35 requests/day
+  - **Rolling 5-Day Average Baseline:** MAE 22.93, MedAE 18.15, RMSE 29.81 requests/day
+- **Inference:** Autoregressive rollout engine generating multi-step point estimates and 90% prediction intervals.
 
 ### C. Monthly Workload Forecasting (`/forecast/monthly-workload`)
 - **Objective:** Forecasts total expected monthly request volume and classifies registrar workload into operational tiers.
 - **Formula:** $\text{Monthly Forecast} = \sum_{t \in \text{Operating Days}} \hat{y}_t$
-- **Workload Classification Tiers (Derived from 2025 Historical Quartiles):**
-  - **Light:** $< 500$ requests/month (e.g., December, October)
-  - **Moderate:** $500 - 850$ requests/month (e.g., April, November, February, May)
+- **Workload Classification Tiers (Derived from 2025 Historical Demand Quartiles):**
+  - **Light:** $< 500$ requests/month (e.g., December recess)
+  - **Moderate:** $500 - 850$ requests/month (e.g., April, November, February)
   - **Heavy:** $850 - 1,150$ requests/month (e.g., July, September, January)
   - **Very Heavy:** $> 1,150$ requests/month (e.g., June graduation, August enrollment peaks)
 
@@ -33,74 +36,105 @@ A production-ready Machine Learning microservice for the **RegQuest** Credential
 ## 2. Directory Structure
 
 ```
-D:\Capstone\ML\
-├── app/
-│   ├── main.py                     # FastAPI entrypoint
-│   ├── config.py                   # Port, host, and path configuration
-│   ├── schemas.py                  # Pydantic v2 input/output validation models
-│   ├── dependencies.py             # ModelManager artifact loader
-│   └── routers/
-│       ├── health.py               # GET /health
-│       ├── processing_time.py      # POST /predict/processing-time
-│       ├── daily_forecast.py       # POST /forecast/daily
-│       └── monthly_workload.py     # POST /forecast/monthly-workload
-├── artifacts/
-│   ├── daily_forecaster.joblib     # Serialized candidate forecaster
-│   ├── processing_baseline.joblib  # Serialized turnaround baseline
-│   ├── metadata.json               # Model versioning, metrics, and thresholds
-│   └── evaluation_report.json      # Chronological walk-forward validation report
+ML/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+│
+├── configs/
+│   ├── data_config.yaml
+│   ├── processing_time_config.yaml
+│   ├── daily_forecast_config.yaml
+│   └── workload_config.yaml
+│
 ├── data/
 │   ├── raw/                        # Original 12 monthly CSV logbooks (untouched)
-│   ├── processed/
-│   │   ├── cleaned_requests.csv    # 9,265 validated tabular records
-│   │   ├── rejected_records.csv    # Unresolved records log (0 records)
-│   │   └── daily_time_series.csv   # 245 daily aggregate observations
-│   └── reports/
-│       └── data_quality_report.json # Comprehensive audit log of 228 repaired dates
+│   ├── interim/                    # Interim datasets
+│   ├── processed/                  # Cleaned tabular records & daily time series
+│   │   ├── cleaned_requests.csv    # 9,265 validated records
+│   │   ├── daily_time_series.csv   # 245 operating day observations
+│   │   └── rejected_records.csv    # Unresolved records log (0 records)
+│   └── external/                   # External reference calendars
+│
+├── notebooks/
+│   ├── 00_system_and_data_audit.ipynb
+│   ├── 01_exploratory_data_analysis.ipynb
+│   ├── 02_data_cleaning_and_preprocessing.ipynb
+│   ├── 03_processing_time_prediction.ipynb
+│   ├── 04_daily_request_forecasting.ipynb
+│   ├── 05_monthly_workload_forecasting.ipynb
+│   ├── 06_model_evaluation_and_comparison.ipynb
+│   └── 99_experiments.ipynb
+│
 ├── src/
-│   ├── pipeline.py                 # Pure Python data loading & validation pipeline
-│   ├── features.py                 # Backward-looking lag & calendar feature extractors
-│   ├── evaluate.py                 # Chronological walk-forward evaluator
-│   ├── train.py                    # Master model training & artifact builder
-│   ├── retrain.py                  # Retraining workflow with champion-challenger gating
-│   └── models/
-│       ├── baselines.py            # Historical mean, naive, and rolling mean baselines
-│       ├── forecaster.py           # Count regressors and autoregressive rollout
-│       └── processing_time.py      # Processing turnaround baseline model
-├── tests/
-│   ├── test_pipeline.py            # Data loading, date repair, and credential tests
-│   ├── test_models.py              # Baseline, forecaster, and interval tests
-│   └── test_api.py                 # FastAPI endpoints and schema tests
-├── Dockerfile                      # Production multi-stage Docker build
-├── docker-compose.yml              # Local container deployment
-├── requirements.txt                # ML service dependencies
-└── README.md                       # Microservice documentation
+│   └── regquest_ml/
+│       ├── __init__.py
+│       ├── common/paths.py         # Centralized paths
+│       ├── data/                   # Data loader, validator, cleaner
+│       ├── features/               # Calendar, daily demand, processing time features
+│       ├── processing_time/        # Turnaround prediction & baseline training
+│       ├── forecasting/            # Daily forecaster rollout & model selection
+│       ├── workload/               # Monthly 4-tier workload classifier
+│       └── evaluation/             # Walk-forward CV & regression metrics
+│
+├── app/
+│   ├── main.py                     # FastAPI application entrypoint
+│   ├── api/
+│   │   └── routes/                 # processing_time, daily_forecast, monthly_workload, health
+│   ├── schemas/                    # Pydantic v2 schemas (processing_time, forecasting)
+│   └── services/                   # Domain services (ProcessingService, ForecastingService)
+│
+├── scripts/
+│   ├── train_processing_time.py    # Fits & persists processing time baseline
+│   ├── train_daily_forecast.py     # Fits & persists champion Random Forest forecaster
+│   └── evaluate_models.py          # 4-split walk-forward CV comparative scoreboard
+│
+├── artifacts/
+│   ├── models/
+│   │   ├── processing_time/        # processing_baseline.joblib
+│   │   └── daily_forecast/         # daily_forecaster.joblib
+│   └── metadata/                   # metadata.json
+│
+├── reports/
+│   ├── data_quality/               # data_quality_report.json
+│   ├── evaluation/                 # evaluation_report.json
+│   └── figures/                    # Visualizations and diagnostic plots
+│
+└── tests/
+    ├── test_data_pipeline.py
+    ├── test_processing_time.py
+    ├── test_forecasting.py
+    └── test_workload.py
 ```
 
 ---
 
 ## 3. Quick Start & Execution
 
-### Running the Data Pipeline
+### Training Models via Scripts
 ```powershell
-& "D:\Capstone\ML\venv\Scripts\python.exe" D:\Capstone\ML\src\pipeline.py
-```
+# 1. Train Processing Time Baseline
+& "D:\Capstone\ML\venv\Scripts\python.exe" D:\Capstone\ML\scripts\train_processing_time.py
 
-### Training & Walk-Forward Validation
-```powershell
-& "D:\Capstone\ML\venv\Scripts\python.exe" -m ML.src.train
+# 2. Train Champion Daily Forecaster
+& "D:\Capstone\ML\venv\Scripts\python.exe" D:\Capstone\ML\scripts\train_daily_forecast.py
+
+# 3. Run Comparative Evaluation Scoreboard
+& "D:\Capstone\ML\venv\Scripts\python.exe" D:\Capstone\ML\scripts\evaluate_models.py
 ```
 
 ### Running Automated Test Suites
 ```powershell
-& "D:\Capstone\ML\venv\Scripts\python.exe" -m pytest ML/tests/ -v
+& "D:\Capstone\ML\venv\Scripts\pytest.exe" D:\Capstone\ML\tests\
 ```
+*(All 49 unit and API integration tests pass with 100% success rate)*
 
-### Starting the FastAPI Server
+### Starting the FastAPI Microservice
 ```powershell
-& "D:\Capstone\ML\venv\Scripts\python.exe" -m uvicorn ML.app.main:app --host 0.0.0.0 --port 8001 --reload
+& "D:\Capstone\ML\venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
-Interactive API docs are available at: `http://localhost:8001/docs`
+Interactive OpenAPI Swagger docs: `http://localhost:8001/docs`
 
 ---
 
@@ -149,14 +183,14 @@ Response:
       "date": "2026-11-09",
       "weekday": "Monday",
       "predicted_requests": 46,
-      "lower_bound_90": 7,
-      "upper_bound_90": 85
+      "lower_bound_90": 16,
+      "upper_bound_90": 76
     }
   ],
-  "model_version": "daily-forecaster-ridge-v1",
+  "model_version": "daily-forecaster-random_forest-v1",
   "start_date": "2026-11-09",
   "total_operating_days": 5,
-  "total_predicted_requests": 234
+  "total_predicted_requests": 230
 }
 ```
 
@@ -172,40 +206,24 @@ Response:
 {
   "status": "success",
   "month": "2026-12",
-  "predicted_total_requests": 366,
+  "predicted_total_requests": 380,
   "operating_days": 23,
-  "average_daily_requests": 15.9,
+  "average_daily_requests": 16.5,
   "workload_level": "Light",
   "classification_basis": "historical_demand",
-  "model_version": "daily-forecaster-ridge-v1",
-  "explanation": "Forecasted 366 total credential requests across 23 operating days (average 15.9 requests/day). Classified as 'Light' based on 2025 historical monthly demand quartiles."
+  "model_version": "daily-forecaster-random_forest-v1",
+  "explanation": "Forecasted 380 total credential requests across 23 operating days (average 16.5 requests/day). Classified as 'Light' based on 2025 historical demand quartiles."
 }
 ```
 
 ---
 
-## 5. Django Backend Integration & Security
+## 5. Django Backend & Frontend Integration
 
-The Django backend (`Capstone-Backend`) integrates with the ML microservice via a non-blocking service layer (`credentials/ml_client.py`):
-- **Role-Based Access Control:**
-  - Students can access processing turnaround estimates (`/api/credentials/predict-turnaround/`).
-  - Daily and monthly workload forecasting endpoints (`/api/credentials/forecast/daily/` and `/api/credentials/forecast/monthly-workload/`) strictly require `STAFF`, `REGISTRAR`, or `ADMIN` roles; students receive `403 Forbidden`.
-- **Fault Tolerance:** If the FastAPI microservice is offline, Django automatically falls back to database master data (`CredentialType.processing_days`), returning `is_fallback: true` so user credential requests never fail.
-
----
-
-## 6. Retraining & Rollback Workflow
-
-When new operational records become available:
-1. Place new monthly CSV logbooks in `ML/data/raw/`.
-2. Run the automated retraining script:
-   ```powershell
-   & "D:\Capstone\ML\venv\Scripts\python.exe" -m ML.src.retrain
-   ```
-3. The script:
-   - Cleans and validates the extended historical dataset.
-   - Evaluates candidate models (Poisson, Ridge, Gradient Boosting) using 4 expanding-window chronological splits.
-   - Compares the best candidate against the deployed production model's validation MAE.
-   - If the candidate demonstrates equivalent or improved performance, it backs up the current model to `artifacts/backups/daily_forecaster_<timestamp>.joblib` and promotes the new champion artifact.
-   - If the candidate performs worse, promotion is aborted and previous models are preserved.
-
+1. **Backend Integration (`Capstone-Backend`):**
+   - Configured via `credentials/ml_client.py` and `credentials/views.py`.
+   - Flake8 compliant with 0 errors (`max-line-length = 88`).
+   - All 7 integration tests pass (`Ran 7 tests in 44.375s. OK`).
+2. **Frontend Integration (`Capstone-Frontend`):**
+   - Live daily forecasts and monthly badges rendered in `PredictedInsightCard.jsx`.
+   - Real-time turnaround estimate query on `TrackStatusPage.jsx` with instant arithmetic fallback.

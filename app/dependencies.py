@@ -36,30 +36,46 @@ class ModelManager:
         return cls._instance
 
     def load_artifacts(self):
-        meta_path = os.path.join(ARTIFACTS_DIR, "metadata.json")
-        forecaster_path = os.path.join(ARTIFACTS_DIR, "daily_forecaster.joblib")
-        baseline_path = os.path.join(ARTIFACTS_DIR, "processing_baseline.joblib")
+        meta_paths = [
+            os.path.join(ARTIFACTS_DIR, "metadata", "metadata.json"),
+            os.path.join(ARTIFACTS_DIR, "metadata.json")
+        ]
+        forecaster_paths = [
+            os.path.join(ARTIFACTS_DIR, "models", "daily_forecast", "daily_forecaster.joblib"),
+            os.path.join(ARTIFACTS_DIR, "daily_forecaster.joblib")
+        ]
+        baseline_paths = [
+            os.path.join(ARTIFACTS_DIR, "models", "processing_time", "processing_baseline.joblib"),
+            os.path.join(ARTIFACTS_DIR, "processing_baseline.joblib")
+        ]
 
-        if os.path.exists(meta_path):
-            try:
-                with open(meta_path, 'r', encoding='utf-8') as fp:
-                    self.metadata = json.load(fp)
-            except Exception as e:
-                print(f"Warning: Failed to load metadata: {e}")
+        for mp in meta_paths:
+            if os.path.exists(mp):
+                try:
+                    with open(mp, 'r', encoding='utf-8') as fp:
+                        self.metadata = json.load(fp)
+                    break
+                except Exception as e:
+                    print(f"Warning: Failed to load metadata from {mp}: {e}")
 
-        if os.path.exists(forecaster_path):
-            try:
-                self.daily_forecaster = joblib.load(forecaster_path)
-            except Exception as e:
-                print(f"Warning: Failed to load daily forecaster: {e}")
+        for fp in forecaster_paths:
+            if os.path.exists(fp):
+                try:
+                    self.daily_forecaster = joblib.load(fp)
+                    break
+                except Exception as e:
+                    print(f"Warning: Failed to load daily forecaster from {fp}: {e}")
 
-        if os.path.exists(baseline_path):
-            try:
-                self.processing_baseline = joblib.load(baseline_path)
-            except Exception as e:
-                print(f"Warning: Failed to load processing baseline: {e}")
+        for bp in baseline_paths:
+            if os.path.exists(bp):
+                try:
+                    self.processing_baseline = joblib.load(bp)
+                    break
+                except Exception as e:
+                    print(f"Warning: Failed to load processing baseline from {bp}: {e}")
 
         self.is_loaded = bool(self.daily_forecaster and self.processing_baseline)
+
 
     def get_status(self) -> Dict[str, Any]:
         return {
