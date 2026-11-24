@@ -6,9 +6,8 @@ Derived from daily Random Forest rollout aggregations.
 from typing import Dict, Any, List
 
 WORKLOAD_THRESHOLDS = {
-    "light_max": 300,
-    "moderate_max": 650,
-    "heavy_max": 900
+    "light_max": 40,
+    "moderate_max": 70
 }
 
 WORKLOAD_DESCRIPTIONS = {
@@ -19,16 +18,20 @@ WORKLOAD_DESCRIPTIONS = {
 }
 
 
-def classify_workload_tier(total_volume: float) -> str:
-    """Classifies total monthly request volume into operational workload tier."""
-    if total_volume < WORKLOAD_THRESHOLDS["light_max"]:
+def classify_workload_tier(total_volume: float, operating_days: int = 1) -> str:
+    """
+    Classifies request volume into operational workload tier based on daily rate.
+    Light: <= 40 requests/day
+    Moderate: 41 - 70 requests/day
+    Heavy: > 70 requests/day
+    """
+    daily_rate = total_volume / max(1, operating_days)
+    if daily_rate <= WORKLOAD_THRESHOLDS["light_max"]:
         return "Light"
-    elif total_volume <= WORKLOAD_THRESHOLDS["moderate_max"]:
+    elif daily_rate <= WORKLOAD_THRESHOLDS["moderate_max"]:
         return "Moderate"
-    elif total_volume <= WORKLOAD_THRESHOLDS["heavy_max"]:
-        return "Heavy"
     else:
-        return "Very Heavy"
+        return "Heavy"
 
 
 def calculate_monthly_workload(
@@ -42,11 +45,12 @@ def calculate_monthly_workload(
     op_days = len(daily_predictions)
     daily_avg = round(total_predicted / max(1, op_days), 1)
 
-    tier = classify_workload_tier(total_predicted)
+    tier = classify_workload_tier(total_predicted, op_days)
     desc = WORKLOAD_DESCRIPTIONS.get(tier, "Normal operations.")
 
-    # Capacity utilization based on nominal threshold of 1000 requests/month
-    capacity_pct = round((total_predicted / 1000.0) * 100.0, 1)
+    # Capacity utilization based on nominal threshold of (70 * op_days) requests/month
+    nominal_cap = float(WORKLOAD_THRESHOLDS["moderate_max"] * max(1, op_days))
+    capacity_pct = round((total_predicted / max(1.0, nominal_cap)) * 100.0, 1)
 
     return {
         "forecast_month": target_month,

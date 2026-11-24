@@ -23,10 +23,20 @@ class TestWorkload(unittest.TestCase):
         self.service = ForecastingService(self.manager)
 
     def test_classify_workload_tier(self):
-        self.assertEqual(classify_workload_tier(250), "Light")
-        self.assertEqual(classify_workload_tier(500), "Moderate")
-        self.assertEqual(classify_workload_tier(800), "Heavy")
-        self.assertEqual(classify_workload_tier(1200), "Very Heavy")
+        # Daily rate tests (operating_days=1)
+        self.assertEqual(classify_workload_tier(35, 1), "Light")
+        self.assertEqual(classify_workload_tier(40, 1), "Light")
+        self.assertEqual(classify_workload_tier(41, 1), "Moderate")
+        self.assertEqual(classify_workload_tier(70, 1), "Moderate")
+        self.assertEqual(classify_workload_tier(71, 1), "Heavy")
+        self.assertEqual(classify_workload_tier(100, 1), "Heavy")
+
+        # Monthly total tests across 20 operating days
+        self.assertEqual(classify_workload_tier(600, 20), "Light")
+        self.assertEqual(classify_workload_tier(800, 20), "Light")
+        self.assertEqual(classify_workload_tier(1000, 20), "Moderate")
+        self.assertEqual(classify_workload_tier(1400, 20), "Moderate")
+        self.assertEqual(classify_workload_tier(1600, 20), "Heavy")
 
     def test_calculate_monthly_workload(self):
         dummy_daily = [
@@ -37,7 +47,7 @@ class TestWorkload(unittest.TestCase):
         self.assertEqual(res["total_predicted_requests"], 500)
         self.assertEqual(res["operating_days_count"], 20)
         self.assertEqual(res["average_daily_requests"], 25.0)
-        self.assertEqual(res["workload_classification"], "Moderate")
+        self.assertEqual(res["workload_classification"], "Light")
         self.assertIn("workload_description", res)
 
     def test_monthly_workload_service_and_schema(self):

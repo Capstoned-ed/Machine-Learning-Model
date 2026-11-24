@@ -5,15 +5,14 @@ Tests baselines, forecaster rollout, processing turnaround estimator, and interv
 
 import unittest
 import numpy as np
-from ML.src.models.baselines import (
+from src.models.baselines import (
     HistoricalMeanBaseline,
     PreviousDayBaseline,
     PreviousSameWeekdayBaseline,
     RollingAverageBaseline
 )
-from ML.src.models.forecaster import DailyDemandForecaster
-from ML.src.models.processing_time import ProcessingTimeBaseline
-from ML.src.evaluate import compute_metrics
+from src.models.forecaster import DailyDemandForecaster
+from src.evaluate import compute_metrics
 
 
 class TestModels(unittest.TestCase):
@@ -41,19 +40,6 @@ class TestModels(unittest.TestCase):
         b_roll = RollingAverageBaseline(rolling5_col_idx=2)
         pred_roll = b_roll.predict(X_test)
         self.assertEqual(pred_roll[0], 35.0)
-
-    def test_processing_baseline(self):
-        baseline = ProcessingTimeBaseline()
-        res_tor = baseline.predict_one("TOR", "Employment")
-        self.assertIn("predicted_processing_time", res_tor)
-        self.assertGreater(res_tor["predicted_processing_time"], 0)
-        self.assertEqual(res_tor["unit"], "operating_days")
-        self.assertFalse(res_tor["is_empirical"])
-        self.assertIn("disclaimer", res_tor)
-
-        # Multi-document addition
-        res_multi = baseline.predict_one("TOR", "Employment", num_docs=2)
-        self.assertGreater(res_multi["predicted_processing_time"], res_tor["predicted_processing_time"])
 
     def test_forecaster_rollout(self):
         # Create a small synthetic dataset

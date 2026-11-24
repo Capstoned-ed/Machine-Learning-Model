@@ -78,10 +78,7 @@ class ForecastingService:
             year, month = map(int, target_month.split("-"))
         else:
             now = datetime.now()
-            if now.month == 12:
-                year, month = now.year + 1, 1
-            else:
-                year, month = now.year, now.month + 1
+            year, month = now.year, now.month
 
         target_month_str = f"{year:04d}-{month:02d}"
         num_days_in_month = calendar.monthrange(year, month)[1]
@@ -106,28 +103,23 @@ class ForecastingService:
         num_op_days = len(operating_dates)
         daily_avg = round(predicted_total / num_op_days, 1) if num_op_days > 0 else 0.0
 
-        thresholds = self.manager.metadata.get("monthly_workload_thresholds", {
-            "light_max": 500,
-            "moderate_max": 850,
-            "heavy_max": 1150
-        })
-
-        if predicted_total < thresholds.get("light_max", 500):
+        # Standardized Workload Severity Thresholds:
+        # Light: <= 40 requests/day (monthly <= 40 * num_op_days)
+        # Moderate: 41 - 70 requests/day (monthly <= 70 * num_op_days)
+        # Heavy: 71+ requests/day (> 70 requests/day)
+        if daily_avg <= 40:
             level = "Light"
             desc = "Demand is anticipated to be below typical operational capacity."
-        elif predicted_total <= thresholds.get("moderate_max", 850):
+        elif daily_avg <= 70:
             level = "Moderate"
             desc = "Demand is in line with standard registrar operational capacity."
-        elif predicted_total <= thresholds.get("heavy_max", 1150):
+        else:
             level = "Heavy"
             desc = "High volume anticipated. Consider preparing additional verification personnel."
-        else:
-            level = "Very Heavy"
-            desc = "Peak volume anticipated (e.g. enrollment/graduation surge). Maximum staffing recommended."
 
         explanation = (
             f"Forecasted {predicted_total} total credential requests across {num_op_days} operating days "
-            f"(average {daily_avg} requests/day). Classified as '{level}' based on 2025 historical demand quartiles. {desc}"
+            f"(average {daily_avg} requests/day). Classified as '{level}' based on standardized operational workload thresholds (Light <= 40, Moderate 41-70, Heavy > 70 req/day). {desc}"
         )
 
         return {

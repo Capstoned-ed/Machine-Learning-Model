@@ -1,6 +1,5 @@
 """Pydantic schemas for the RegQuest ML microservice."""
 
-from .processing_time import ProcessingTimeRequest, ProcessingTimeResponse
 from .forecasting import (
     HealthCheckResponse,
     DailyForecastRequest,
@@ -12,8 +11,6 @@ from .forecasting import (
 
 __all__ = [
     "HealthCheckResponse",
-    "ProcessingTimeRequest",
-    "ProcessingTimeResponse",
     "DailyForecastRequest",
     "DailyForecastItem",
     "DailyForecastResponse",

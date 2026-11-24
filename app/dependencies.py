@@ -24,7 +24,6 @@ class ModelManager:
 
     def __init__(self):
         self.daily_forecaster = None
-        self.processing_baseline = None
         self.metadata = {}
         self.is_loaded = False
         self.load_artifacts()
@@ -44,10 +43,6 @@ class ModelManager:
             os.path.join(ARTIFACTS_DIR, "models", "daily_forecast", "daily_forecaster.joblib"),
             os.path.join(ARTIFACTS_DIR, "daily_forecaster.joblib")
         ]
-        baseline_paths = [
-            os.path.join(ARTIFACTS_DIR, "models", "processing_time", "processing_baseline.joblib"),
-            os.path.join(ARTIFACTS_DIR, "processing_baseline.joblib")
-        ]
 
         for mp in meta_paths:
             if os.path.exists(mp):
@@ -66,25 +61,15 @@ class ModelManager:
                 except Exception as e:
                     print(f"Warning: Failed to load daily forecaster from {fp}: {e}")
 
-        for bp in baseline_paths:
-            if os.path.exists(bp):
-                try:
-                    self.processing_baseline = joblib.load(bp)
-                    break
-                except Exception as e:
-                    print(f"Warning: Failed to load processing baseline from {bp}: {e}")
-
-        self.is_loaded = bool(self.daily_forecaster and self.processing_baseline)
+        self.is_loaded = bool(self.daily_forecaster)
 
 
     def get_status(self) -> Dict[str, Any]:
         return {
             "daily_forecaster_available": self.daily_forecaster is not None,
-            "processing_baseline_available": self.processing_baseline is not None,
             "metadata_available": bool(self.metadata),
             "versions": {
-                "daily_forecaster": self.metadata.get("daily_forecaster", {}).get("version", "unknown"),
-                "processing_time": self.metadata.get("processing_time_baseline", {}).get("version", "unknown")
+                "daily_forecaster": self.metadata.get("daily_forecaster", {}).get("version", "unknown")
             },
             "uptime_seconds": round(time.time() - START_TIME, 1)
         }
